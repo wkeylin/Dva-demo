@@ -12,140 +12,144 @@ import Modal from './Modal'
 
 
 const Food = ({ location, dispatch, food, loading }) => {
-    location.query = queryString.parse(location.search)
-    const { list, pagination, currentItem, modalVisible, modalType, isMotion, selectedRowKeys } = food
-    const { pageSize } = pagination;
+  location.query = queryString.parse(location.search)
+  const { list, pagination, currentItem, modalVisible, modalType, isMotion, selectedRowKeys } = food
+  const { pageSize } = pagination
 
-    const modalProps = {
-        item: modalType === 'create' ? {} : currentItem,
-        visible: modalVisible,
-        maskClosable: false,
-        confirmLoading: loading.effects['food/update'],
-        title: `${modalType === 'create' ? 'Create Food' : 'Update Food'}`,
-        wrapClassName: 'vertical-center-modal',
-        onOk (data) {
-          dispatch({
-            type: `food/${modalType}`,
-            payload: data,
-          })
+  const modalProps = {
+    item: modalType === 'create' ? {} : currentItem,
+    visible: modalVisible,
+    maskClosable: false,
+    confirmLoading: loading.effects['food/update'],
+    title: `${modalType === 'create' ? 'Create Food' : 'Update Food'}`,
+    wrapClassName: 'vertical-center-modal',
+    onOk (data) {
+      dispatch({
+        type: `food/${modalType}`,
+        payload: data,
+      })
+    },
+    onCancel () {
+      dispatch({
+        type: 'food/hideModal',
+      })
+    },
+  }
+  const filterProps = {
+    isMotion,
+    filter: {
+      ...location.query,
+    },
+    onFilterChange (value) {
+      dispatch(routerRedux.push({
+        pathname: location.pathname,
+        query: {
+          ...value,
+          page: 1,
+          pageSize,
         },
-        onCancel () {
-          dispatch({
-            type: 'food/hideModal',
-          })
+      }))
+    },
+    onSearch (fieldsValue) {
+      fieldsValue.keyword.length ? dispatch(routerRedux.push({
+        pathname: '/food',
+        query: {
+          field: fieldsValue.field,
+          keyword: fieldsValue.keyword,
         },
-    }
-    const filterProps = {
-        isMotion,
-        filter: {
-          ...location.query,
+      })) : dispatch(routerRedux.push({
+        pathname: '/food',
+      }))
+    },
+    onAdd () {
+      dispatch({
+        type: 'food/showModal',
+        payload: {
+          modalType: 'create',
         },
-        onFilterChange (value) {
-          dispatch(routerRedux.push({
-            pathname: location.pathname,
-            query: {
-              ...value,
-              page: 1,
-              pageSize,
-            },
-          }))
+      })
+    },
+    switchIsMotion () {
+      dispatch({ type: 'food/switchIsMotion' })
+    },
+  }
+  const listProps = {
+    dataSource: list,
+    loading: loading.effects['food/query'],
+    pagination,
+    location,
+    isMotion,
+    onChange (page) {
+      const { query, pathname } = location
+      dispatch(routerRedux.push({
+        pathname,
+        query: {
+          ...query,
+          page: page.current,
+          pageSize: page.pageSize,
         },
-        onSearch (fieldsValue) {
-          fieldsValue.keyword.length ? dispatch(routerRedux.push({
-            pathname: '/food',
-            query: {
-              field: fieldsValue.field,
-              keyword: fieldsValue.keyword,
-            },
-          })) : dispatch(routerRedux.push({
-            pathname: '/food',
-          }))
+      }))
+    },
+    onDeleteItem (id) {
+      dispatch({
+        type: 'food/delete',
+        payload: id,
+      })
+    },
+    onEditItem (item) {
+      console.log(item)
+      dispatch({
+        type: 'food/showModal',
+        payload: {
+          modalType: 'update',
+          currentItem: item,
         },
-        onAdd () {
-          dispatch({
-            type: 'food/showModal',
-            payload: {
-              modalType: 'create',
-            },
-          })
-        },
-        switchIsMotion () {
-          dispatch({ type: 'food/switchIsMotion' })
-        },
-      }
-    const listProps = {
-        dataSource: list,
-        loading: loading.effects['food/query'],
-        pagination,
-        location,
-        isMotion,
-        onChange(page) {
-            const { query, pathname } = location
-            dispatch(routerRedux.push({
-                pathname,
-                query: {
-                    ...query,
-                    page: page.current,
-                    pageSize: page.pageSize,
-                },
-            }))
-        },
-        onDeleteItem(id) {
-            dispatch({
-                type: 'food/delete',
-                payload: id,
-            })
-        },
-        onEditItem(item) {
-            
-            console.log(item);
-            dispatch({
-                type: 'food/showModal',
-                payload: {
-                    modalType: 'update',
-                    currentItem: item,
-                },
-            })
-        },
-        rowSelection: {
-            selectedRowKeys,
-            onChange: (keys) => {
-                dispatch({
-                    type: 'food/updateState',
-                    payload: {
-                        selectedRowKeys: keys,
-                    },
-                })
-            },
-        },
-    }
-    const handleDeleteItems = () => {
+      })
+    },
+    rowSelection: {
+      selectedRowKeys,
+      onChange: (keys) => {
         dispatch({
-            type: 'food/multiDelete',
-            payload: {
-                ids: selectedRowKeys,
-            },
+          type: 'food/updateState',
+          payload: {
+            selectedRowKeys: keys,
+          },
         })
-    }
-    return (
-        <Page inner>
-            <Filter {...filterProps} />
-            {
-                selectedRowKeys.length > 0 &&
-                <Row style={{ marginBottom: 24, textAlign: 'right', fontSize: 13 }}>
-                <Col>
-                    {`Selected ${selectedRowKeys.length} items `}
-                    <Popconfirm title={'Are you sure delete these items?'} placement="left" onConfirm={handleDeleteItems}>
-                    <Button type="primary" size="large" style={{ marginLeft: 8 }}>Remove</Button>
-                    </Popconfirm>
-                </Col>
-                </Row>
-            }
-            <List {...listProps} />
-            {modalVisible && <Modal {...modalProps} />}
-        </Page>
+      },
+    },
+  }
+  const handleDeleteItems = () => {
+    dispatch({
+      type: 'food/multiDelete',
+      payload: {
+        ids: selectedRowKeys,
+      },
+    })
+  }
+  return (
+    <Page inner>
+      <Filter {...filterProps} />
+      {
+        selectedRowKeys.length > 0 &&
+        <Row style={{ marginBottom: 24, textAlign: 'right', fontSize: 13 }}>
+          <Col>
+            {`Selected ${selectedRowKeys.length} items `}
+            <Popconfirm title={'Are you sure delete these items?'} placement="left" onConfirm={handleDeleteItems}>
+              <Button type="primary" size="large" style={{ marginLeft: 8 }}>Remove</Button>
+            </Popconfirm>
+          </Col>
+        </Row>
+      }
+      <List {...listProps} />
+      {modalVisible && <Modal {...modalProps} />}
+    </Page>
 
-    )
+  )
 }
-
-export default connect(({ food, loading}) => ({ food, loading}))(Food)
+Food.propTypes = {
+  location: PropTypes.object,
+  dispatch: PropTypes.func,
+  loading: PropTypes.object,
+  food: PropTypes.object,
+}
+export default connect(({ food, loading }) => ({ food, loading }))(Food)
