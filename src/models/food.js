@@ -29,7 +29,7 @@ export default modelExtend(pageModel, {
     },
   },
   effects: {
-    * query ({ payload = {} }, { put }) {
+    *query ({ payload = {} }, { put }) {
       const data = yield query(payload)
       console.log('query', data)
       if (data) {
